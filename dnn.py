@@ -57,7 +57,7 @@ class dnn(object):
         self.params += self.OutputLayer.params
         self.num_hidden_layer = num_hidden_layer
     
-    def forward(feature, index):
+    def forward(self, feature, index):
         self.a=[]#record output of layer
         self.z=[]#record input activation function
         for i in index:
@@ -73,13 +73,13 @@ class dnn(object):
                 inputs.append(act(o))
             self.a.append(np.asarray(inputs,dtype=theano.config.floatX ))
 
-    def calculate_error(y, index):
+    def calculate_error(self, y, index):
         self.err = 0
         for i in range(len(index)):
             if not max(self.a[i][self.num_hidden_layer+2]) == y[index[i]]:
                 self.err += 1
     
-    def backpropagation(y, index):
+    def backpropagation(self, y, index):
         self.delta=[]#store in reverse order (delta[0] is actually delta_L)
         for i in range(len(index)):
             dlt=[]
@@ -92,7 +92,7 @@ class dnn(object):
                     dlt.append(np.asaray(dl),dtype=theano.config.floatX )
             self.delta.append(np.asarray(dlt,dtype=theano.config.floatX ))
             
-    def update(index):
+    def update(self, index):
         learning_rate = 0.0001
         gparam = []
         for i in range(len(index)):
@@ -102,7 +102,7 @@ class dnn(object):
                 gradient.append(tt.dot(self.delta[i][len_a-1-j].transpose(),self.a[i][j]))
             gparam = tt.add(gparm,gradient)
         tt.add(self.param,-learning_rate*gparam)
-    def predict(feature,index):
+    def predict(self, feature,index):
         y = []
         for i in index:
             self.InputLayer.input = feature[i]
