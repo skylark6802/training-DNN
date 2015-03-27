@@ -34,7 +34,7 @@ class dnn(object):
         #input layer
         self.InputLayer = HiddenLayer(
                             rng=rng,
-                            input=None;
+                            input=None,
                             n_in=n_in,
                             n_out=n_hidden)
         #hidden layer
@@ -85,10 +85,10 @@ class dnn(object):
             dlt=[]
             if not max(self.a[i][self.num_hidden_layer+2]) == y[index[i]]:# update only when incorrect prediction
                 dlt.append(np.asarray(gact(self.z[i][self.num_hidden_layer+1]),dtype=theano.config.floatX ))
-                dl = gact(self.z[i][self.num_hidden_layer]*tt.dot(dlt[0],self.OutputLayer.W)
+                dl = gact(self.z[i][self.num_hidden_layer]*tt.dot(dlt[0],self.OutputLayer.W))
                 dlt.append(np.asarray(dl,dtype=theano.config.floatX ))
                 for j in range(self.num_hidden_layer):
-                    dl = gact(self.z[i][self.num_hidden_layer-j-1]*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W)
+                    dl = gact(self.z[i][self.num_hidden_layer-j-1]*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W))
                     dlt.append(np.asaray(dl),dtype=theano.config.floatX )
             self.delta.append(np.asarray(dlt,dtype=theano.config.floatX ))
             
@@ -102,12 +102,16 @@ class dnn(object):
                 gradient.append(tt.dot(self.delta[i][len_a-1-j].transpose(),self.a[i][j]))
             gparam = tt.add(gparm,gradient)
         tt.add(self.param,-learning_rate*gparam)
-    def predict(self, feature,index):
+    def predict(self, feature, label, index):
         y = []
+        acc = 0
         for i in index:
             self.InputLayer.input = feature[i]
             output = self.OutputLayer.output
             y.append(max(output))
-        return y
+            if max(output) == label[i]:
+                acc += 1
+        acc /= float(len(index))
+        return y, acc
         
 
