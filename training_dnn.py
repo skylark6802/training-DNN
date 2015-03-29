@@ -1,20 +1,38 @@
-import dnn
-import modelTool 
+from dnn import deepNeuralNetwork
+from modelTool import Save_Model 
 import random
+from inputs import dataset
 
-MAX_EPOCH = 1
+MAX_EPOCH = 1000000
 
 if __name__ == '__main__':
-    data = dataset('/tmp2/r03922067/mfcc/train.ark','/tmp2/r03922067/state_label/train.lab')
+    data = dataset('./mfcc/train.ark','./state_label/train.lab')
     training_data,training_label,val_data,val_label = data.GetInput()
+    print 'training size='+str(len(training_label))
+    print 'validation size='+str(len(val_label))
+    epoch = 0
+    print 'data load'
+    dnn = deepNeuralNetwork(1,39,10,39)
     while epoch < MAX_EPOCH:
         batch = random.sample(range(len(training_label)),10)
-        dnn.foward(training_data, batch)
-        dnn.calculate_error(training_label, batch)
-        dnn.backpropagate(training_label, batch)
+        dnn.forward(training_data, batch)
+        #dnn.calculate_error(training_label, batch)
+        dnn.backpropagation(training_label, batch)
         dnn.update(batch)
         epoch += 1
-    
-    dnn.foward(val_data, range(len(val_label)))
-    pre, acc = dnn.predict(val_data, val_label, range(len(val_label)))
+	if epoch % 10000 == 0:		
+    		batch = random.sample(range(len(val_label)),10000)
+    		dnn.forward(val_data, batch)
+    		pre, acc = dnn.predict(val_data, val_label, batch)
+		print acc
+        if epoch % 100000 == 0:
+		Save_Model(dnn,str(epoch)+'.model')
+        if epoch % 1000 == 0:
+		print epoch
+    print 'validation data' 
+    batch = range(len(val_label))
+    #batch = random.sample(range(len(val_label)),10)
+    dnn.forward(val_data, batch)
+    pre, acc = dnn.predict(val_data, val_label, batch)
     print acc
+    Save_Model(dnn,'final.model')
