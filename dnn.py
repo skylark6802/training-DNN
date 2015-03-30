@@ -99,13 +99,18 @@ class deepNeuralNetwork(object):
             
     def update(self, index):
         learning_rate = 0.0001
-        gparam = []
+        gW = []
+        gb = []
         for i in range(len(index)):
             gradient=[]
+            gradb = []
             len_a = len(self.a[i])-1 #output doesn't caculate gradient
             for j in range(len_a):
                 gradient.append(tt.dot(self.delta[i][len_a-1-j].transpose(),self.a[i][j]))
-            gparam = tt.add(gparam,gradient)
+                gradb.append(self.delta[i][len_a-1-j])
+            gW = tt.add(gW,gradient)
+            gb = tt.add(gb,gradb)
+        gparam = gW + gb
 	gparam /= len(index)
         tt.add(self.params,-learning_rate*gparam)
     def predict(self, feature, label, index):
