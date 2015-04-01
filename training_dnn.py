@@ -14,8 +14,8 @@ if __name__ == '__main__':
     epoch = 0
     print 'data load'
     dnn = deepNeuralNetwork(1,39,10,1943)
-    batch = random.sample(range(len(training_label)),10)
     while epoch < MAX_EPOCH:
+    	batch = random.sample(range(len(training_label)),10)
         dnn.forward(training_data, batch)
         dnn.backpropagation(training_label, batch)
         dnn.update(batch)
