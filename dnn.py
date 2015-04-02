@@ -61,23 +61,26 @@ class deepNeuralNetwork(object):
             output= []
             self.InputLayer.run(feature[i])
             output.append(self.InputLayer.output.eval()[0])
-	    self.hiddenLayer[0].run( [act(j) for j in (self.InputLayer.output.eval()[0])])
+	    #self.hiddenLayer[0].run( [act(j) for j in (self.InputLayer.output.eval()[0])])
+	    self.hiddenLayer[0].run( map(act,self.InputLayer.output.eval()[0]))
             output.append(self.hiddenLayer[0].output.eval()[0])
             for j in range(1,self.num_hidden_layer):
-		self.hiddenLayer[j].run([act(k) for k in self.hiddenLayer[j-1].output.eval()[0]])
-                output.append(self.hiddenLayer[j].output.eval()[0])
-	    self.OutputLayer.run([act(j) for j in self.hiddenLayer[self.num_hidden_layer-1].output.eval()[0]])
+		#self.hiddenLayer[j].run([act(k) for k in self.hiddenLayer[j-1].output.eval()[0]])
+                self.hiddenLayer[j].run( map(act, self.hiddenLayer[j-1].output.eval()[0]))
+		output.append(self.hiddenLayer[j].output.eval()[0])
+	    #self.OutputLayer.run([act(j) for j in self.hiddenLayer[self.num_hidden_layer-1].output.eval()[0]])
+	    self.OutputLayer.run( map(act,self.hiddenLayer[self.num_hidden_layer-1].output.eval()[0]))
             output.append(self.OutputLayer.output.eval()[0])
             self.z.append(output)
             inputs=[np.asarray(feature[i])]
             for out in output:
-                inputs.append(np.asarray([act(o) for o in out]))
+                inputs.append(np.asarray( map(act,out)))
+                #inputs.append(np.asarray([act(o) for o in out]))
             self.a.append(inputs)
 
     def calculate_error(self, y, index):
         self.err = 0
         for i in range(len(index)):
-	    #print np.argmax(self.a[i][self.num_hidden_layer+2]),self.a[i][self.num_hidden_layer+2][np.argmax(self.a[i][self.num_hidden_layer+2])],self.a[i][self.num_hidden_layer+2][y[index[i]]]
             if not np.argmax(self.a[i][self.num_hidden_layer+2]) == y[index[i]]:
                 self.err += 1
 	print 1-float(self.err)/len(index)
@@ -87,11 +90,14 @@ class deepNeuralNetwork(object):
         for i in range(len(index)):
             dlt=[]
 	    g = self.function_gradient(y[index[i]],self.a[i][self.num_hidden_layer+2])
-            dlt.append(np.asarray([gact(j) for j in self.z[i][self.num_hidden_layer+1]]*g,dtype=theano.config.floatX ))
-	    dl = np.asarray([gact(j) for j in self.z[i][self.num_hidden_layer]],dtype=theano.config.floatX)*tt.dot(dlt[0],self.OutputLayer.W.transpose())
+            #dlt.append(np.asarray([gact(j) for j in self.z[i][self.num_hidden_layer+1]]*g,dtype=theano.config.floatX ))
+            dlt.append(np.asarray( map(gact, self.z[i][self.num_hidden_layer+1])*g,dtype=theano.config.floatX ))
+	    #dl = np.asarray([gact(j) for j in self.z[i][self.num_hidden_layer]],dtype=theano.config.floatX)*tt.dot(dlt[0],self.OutputLayer.W.transpose())
+	    dl = np.asarray( map(gact, self.z[i][self.num_hidden_layer]),dtype=theano.config.floatX)*tt.dot(dlt[0],self.OutputLayer.W.transpose())
 	    dlt.append(dl.eval())
 	    for j in range(self.num_hidden_layer):
-	        dl = np.asarray([gact(k) for k in self.z[i][self.num_hidden_layer-j-1]],dtype=theano.config.floatX)*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W.transpose())
+	        #dl = np.asarray([gact(k) for k in self.z[i][self.num_hidden_layer-j-1]],dtype=theano.config.floatX)*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W.transpose())
+	        dl = np.asarray( map(gact, self.z[i][self.num_hidden_layer-j-1]),dtype=theano.config.floatX)*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W.transpose())
 		dlt.append(dl.eval())
             self.delta.append(dlt)
             

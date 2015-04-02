@@ -28,7 +28,7 @@ if __name__ == '__main__':
     		dnn.forward(val_data, batch)
     		pre, acc = dnn.predict(val_data, val_label, batch)
 		print acc
-        if epoch % 10000 == 0:
+        if epoch % 1000 == 0:
         	Save_Model(dnn,str(epoch)+'.model')
         if epoch % 1000 == 0:
 		print epoch
