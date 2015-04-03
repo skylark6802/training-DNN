@@ -20,18 +20,16 @@ if __name__ == '__main__':
         dnn.backpropagation(training_label, batch)
         dnn.update(batch)
        
-        #dnn.calculate_error(training_label, batch)
-	epoch += 1
-	
-	if epoch % 10000 == 0:		
-    		batch = random.sample(range(len(val_label)),10000)
+        dnn.calculate_error(training_label, batch)
+	if epoch % 10 == 0:		
+    		batch = random.sample(range(len(val_label)),10)
     		dnn.forward(val_data, batch)
     		pre, acc = dnn.predict(val_data, val_label, batch)
 		print acc
         if epoch % 1000 == 0:
         	Save_Model(dnn,str(epoch)+'.model')
-        if epoch % 1000 == 0:
-		print epoch
+	epoch+=1
+	print epoch
     print 'validation data' 
     batch = range(len(val_label))
     #batch = random.sample(range(len(val_label)),10)
