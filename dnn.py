@@ -2,15 +2,6 @@ import numpy as np
 import theano
 import theano.tensor as tt
 
-#x = tt.dscalar('x')
-#y = tt.log(1 + tt.exp(x))
-#y = 1/(1+tt.exp(-x))
-x = tt.vector('x')
-y = tt.log(1+tt.exp(x))
-act = theano.function( [x], y ,allow_input_downcast=True)
-g = 1/(1+tt.exp(-x))
-gact = theano.function( [x], g ,allow_input_downcast=True)
-
 class HiddenLayer(object):
     def __init__(self, rng, n_in, n_out, W=None, b=None):
         if W is None:
@@ -25,18 +16,18 @@ class HiddenLayer(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
 
         if b is None:
-            b_values = np.asarray(rng.uniform(low=-np.sqrt(0.6 / (n_in + n_out)),high=np.sqrt(0.6 / (n_in + n_out)),size=(1,n_out)), dtype=theano.config.floatX)
-            b = theano.shared(value=b_values, name='b', borrow=True)
+            b_values = np.asarray(rng.uniform(low=-np.sqrt(0.6 / (n_in + n_out)),high=np.sqrt(0.6 / (n_in + n_out)),size=(n_out)), dtype=theano.config.floatX)
+	    b = theano.shared(value=b_values, name='b', borrow=True)
         self.W = W
         self.b = b
     def run(self, input):
-        self.output = tt.dot(input, self.W) + self.b 
+	self.output = tt.add(tt.dot(input, self.W), self.b)
     def update(self, gW, gb, learning_rate):
 	self.W = tt.add(self.W ,-gW*learning_rate)
 	self.b = tt.add(self.b , -gb*learning_rate)
 # number of hidden layer can not be zero
 class deepNeuralNetwork(object):
-    def __init__(self, num_hidden_layer, n_in, n_hidden, n_out):
+    def __init__(self, num_hidden_layer, n_in, n_hidden, n_out, batch_size):
         #input layer
         rng = np.random.RandomState(1234)
         self.InputLayer = HiddenLayer(
@@ -55,47 +46,48 @@ class deepNeuralNetwork(object):
                             n_out=n_out)
         #set dnn parameters
         self.num_hidden_layer = num_hidden_layer
+	self.a=[]
+	self.y_pred = theano.shared(np.zeros(batch_size, dtype=theano.config.floatX),borrow=True)
     
     def forward(self, feature, index):
         self.a=[]#record output of layer
         self.z=[]#record input activation function
+	self.output=[]
         for i in index:
             output= []
-            self.InputLayer.run(feature[i])
-            output.append(self.InputLayer.output.eval()[0])
-	    self.hiddenLayer[0].run( act(self.InputLayer.output.eval()[0]) )
-            output.append(self.hiddenLayer[0].output.eval()[0])
+            self.InputLayer.run(tt.cast(feature[i], dtype=theano.config.floatX))
+            output.append(self.InputLayer.output)
+	    self.hiddenLayer[0].run( tt.log(1+tt.exp(self.InputLayer.output)) )
+            output.append(self.hiddenLayer[0].output)
             for j in range(1,self.num_hidden_layer):
-                self.hiddenLayer[j].run(act(self.hiddenLayer[j-1].output.eval()[0]))
-		output.append(self.hiddenLayer[j].output.eval()[0])
-	    self.OutputLayer.run(act(self.hiddenLayer[self.num_hidden_layer-1].output.eval()[0]))
-            output.append(self.OutputLayer.output.eval()[0])
+                self.hiddenLayer[j].run(tt.log(1+tt.exp(self.hiddenLayer[j-1].output)))
+		output.append(self.hiddenLayer[j].output)
+	    self.OutputLayer.run(tt.log(1+tt.exp(self.hiddenLayer[self.num_hidden_layer-1].output)))
+            output.append(self.OutputLayer.output)
             self.z.append(output)
-            inputs=[np.asarray(feature[i])]
+            inputs=[tt.cast(feature[i], dtype=theano.config.floatX)]
             for out in output:
-                inputs.append(np.asarray(act(out)))
-                #inputs.append(np.asarray([act(o) for o in out]))
+                inputs.append(tt.log(1+tt.exp(out)))
             self.a.append(inputs)
+	for i in range(len(index)):
+		self.output.append(self.a[i][self.num_hidden_layer+2])
+	self.y_pred = tt.argmax(self.output,axis=1)
 
-    def calculate_error(self, y, index):
-        self.err = 0
-        for i in range(len(index)):
-	    predict = tt.argmax(self.a[i][self.num_hidden_layer+2]).eval() 
-	    print predict,self.a[i][self.num_hidden_layer+2][predict],self.a[i][self.num_hidden_layer+2][y[index[i]]]
-            if not predict == y[index[i]]:
-                self.err += 1
-	print 1-float(self.err)/len(index)
+
+
+    def calculate_error(self, y_pred, y):
+	return tt.eq(y_pred, y)
     
     def backpropagation(self, y, index):
         self.delta=[]#store in reverse order (delta[0] is actually delta_L)
         for i in range(len(index)):
             dlt=[]
 	    g = self.function_gradient(y[index[i]],self.a[i][self.num_hidden_layer+2])
-            dlt.append(tt.cast(gact( self.z[i][self.num_hidden_layer+1] )*g,dtype=theano.config.floatX ))
-	    dl = np.asarray(gact(self.z[i][self.num_hidden_layer]),dtype=theano.config.floatX)*tt.dot(dlt[0],self.OutputLayer.W.transpose())
+            dlt.append(1/(1+tt.exp(-self.z[i][self.num_hidden_layer+1] ))*g)
+	    dl = 1/(1+tt.exp(-self.z[i][self.num_hidden_layer]))*tt.dot(dlt[0],self.OutputLayer.W.transpose())
 	    dlt.append(dl)
 	    for j in range(self.num_hidden_layer):
-	        dl = np.asarray(gact(self.z[i][self.num_hidden_layer-j-1]),dtype=theano.config.floatX)*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W.transpose())
+	        dl = 1/(1+tt.exp(-self.z[i][self.num_hidden_layer-j-1]))*tt.dot(dlt[j+1],self.hiddenLayer[self.num_hidden_layer-j-1].W.transpose())
 		dlt.append(dl)
             self.delta.append(dlt)
             
@@ -110,7 +102,7 @@ class deepNeuralNetwork(object):
             for j in range(len_a):
 		#print "delta: "+str(np.size(self.delta[i][len_a-1-j]))
 		#print "a: "+str(np.size(self.a[i][j]))
-                gradient.append(self.a[i][j].reshape(len(self.a[i][j]),1)*self.delta[i][len_a-1-j])
+                gradient.append(tt.reshape(self.a[i][j], [self.a[i][j].shape[0],1])*self.delta[i][len_a-1-j])
                 gradb.append(self.delta[i][len_a-1-j])
 		#print self.a[i][j].reshape(len(self.a[i][j]),1)*self.delta[i][len_a-1-j]
 	    if gW == []:
@@ -127,27 +119,13 @@ class deepNeuralNetwork(object):
 	self.InputLayer.update(gW[0],gb[0],learning_rate)
 	for i in range(self.num_hidden_layer):
 		self.hiddenLayer[i].update(gW[i+1],gb[i+1],learning_rate)
-	#for j in range(10):
-	    #print self.OutputLayer.W.eval()[j][y[index[i]]], self.OutputLayer.W.eval()[j][y[index[i]]+1]
 	self.OutputLayer.update(gW[self.num_hidden_layer+1],gb[self.num_hidden_layer+1],learning_rate)
-	#for j in range(10):
-	#    print self.OutputLayer.W.eval()[j][y[index[i]]], self.OutputLayer.W.eval()[j][y[index[i]]+1]
-    def predict(self, feature, label, index):
-        y = []
-        acc = 0
-        for i in range(len(index)):
-		pre = int(tt.argmax(self.a[i][self.num_hidden_layer+2]).eval())
-		y.append(pre)
-		if pre == label[index[i]]:
-                	acc += 1
-        acc /= float(len(index))
-        return y, acc
+    
     def function_gradient(self, y, a):
-        p = np.zeros(1943)
+        p = np.zeros(1943,dtype=theano.config.floatX)
         p[y] = 1.0
 	s = tt.sum(a)
-	a = a / (s.eval())
-	print 2*(p[y]-a[y]),y,s.eval(),a[y]
+	a = a/s
 	return (p-a)*-2
         
 
