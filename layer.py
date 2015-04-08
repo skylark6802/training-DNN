@@ -3,7 +3,7 @@ import theano
 import theano.tensor as tt
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, W=None, b=None, output = False):
+    def __init__(self, rng, input, n_in, n_out, W=None, b=None, outputlayer = False):
         self.input = input
         if W is None:
             W_values = np.asarray(rng.uniform(low=-np.sqrt(6. / (n_in + n_out)),high=np.sqrt(6. / (n_in + n_out)),size=(n_in, n_out)),dtype=theano.config.floatX)
@@ -14,11 +14,11 @@ class HiddenLayer(object):
         self.W = W
         self.b = b
         output = tt.dot(input, self.W) + self.b
-        if output == False:
-            self.output = self.activation(output)
-        else:
-            self.output = output
+        self.output = self.activation(output,outputlayer)
         # parameters of the model
         self.params = [self.W, self.b]
-    def activation(self,x):
-        return tt.log(1+tt.exp(x))
+    def activation(self,x,outputlayer):
+        if outputlayer:
+            return tt.nnet.softmax(x)
+        else:
+            return tt.log(1+tt.exp(x))

@@ -2,12 +2,12 @@ import sys
 import random
 import numpy
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
-def shared_dataset(datax,datay,borrow=True):
+def shared_dataset(data_x,data_y,borrow=True):
 	shared_x = theano.shared(numpy.asarray(data_x,dtype=theano.config.floatX),borrow=borrow)
-    	shared_y = theano.shared(numpy.asarray(data_y,dtype=theano.config.floatX),borrow=borrow)
-    	return shared_x, T.cast(shared_y, 'int32')
+	shared_y = theano.shared(numpy.asarray(data_y,dtype=theano.config.floatX),borrow=borrow)
+	return shared_x, tt.cast(shared_y, 'int32')
 class dataset:	
 	def __init__(self,a,b,Map): 
 		self.train_MFCC = a
