@@ -1,3 +1,1 @@
-# training-DNN
-Test for warchero
-yoyoyo
+ask chander and he'll tell you anything you want
