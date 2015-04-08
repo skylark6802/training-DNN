@@ -126,13 +126,17 @@ def main():
         #global learning_rate
         #learning_rate = learning_rate*learning_rate_decay
         epoch = epoch + 1
-        #batch_index = np.random.randint(0,valid_size,VAL_BATCH_SIZE)
-        valid_index = range(valid_size)
-        acc = validate_model(valid_index)
-        t_acc = training_acc(range(training_size))
+        
+        #valid_index = np.random.randint(0,valid_size,VAL_BATCH_SIZE)
+        valid_index = np.asarray(range(valid_size))
+        num_valid_batch = int(valid_size/float(VAL_BATCH_SIZE))
+        acc = 0
+        for i in range(num_valid_batch):
+            acc += validate_model(valid_index[i*VAL_BATCH_SIZE:(i+1)*VAL_BATCH_SIZE])
+        #t_acc = training_acc(np.asarray(range(training_size)))
         print epoch
-        print 'training acc = '+ str(t_acc)
-        print 'valid acc = '+str(acc)
+        #print 'training acc = '+ str(t_acc)
+        print 'valid acc = '+str(acc / num_valid_batch)
 
 
 
