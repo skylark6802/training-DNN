@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Use package: numpy, theano
 
 Use GPU:
@@ -15,3 +16,6 @@ Use CPU:
 python mlp.py [out] [in]
 [out]: 39 or 1943 , it means DNN output 39 or 1943 dimension
 [in]: MFCC ,fbank69 : feature tpye
+=======
+ask chander and he'll tell you anything you want
+>>>>>>> a396f216970101d2d9a7fc4fdbc5d87faeb69a27
